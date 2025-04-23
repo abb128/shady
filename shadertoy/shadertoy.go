@@ -73,7 +73,8 @@ func (st ShaderToy) Sources() (map[renderer.Stage][]renderer.Source, error) {
 	return map[renderer.Stage][]renderer.Source{
 		renderer.StageVertex: {renderer.SourceBuf(fmt.Sprintf(`
 			#version %s
-			attribute vec3 vert;
+			precision highp float;
+			in vec3 vert;
 			void main(void) {
 				gl_Position = vec4(vert, 1.0);
 			}
@@ -82,6 +83,7 @@ func (st ShaderToy) Sources() (map[renderer.Stage][]renderer.Source, error) {
 			ss := []renderer.Source{}
 			ss = append(ss, renderer.SourceBuf(fmt.Sprintf(`
 				#version %s
+				precision highp float;
 				uniform vec3 iResolution;
 				uniform float iTime;
 				uniform float iTimeDelta;
@@ -91,6 +93,8 @@ func (st ShaderToy) Sources() (map[renderer.Stage][]renderer.Source, error) {
 				uniform vec4 iDate;
 				uniform float iSampleRate;
 				uniform vec3 iChannelResolution[4];
+
+				out vec4 fragColor;
 			`, st.glslVersion)))
 			for _, res := range st.resources {
 				ss = append(ss, renderer.SourceBuf(res.UniformSource()))
@@ -101,8 +105,8 @@ func (st ShaderToy) Sources() (map[renderer.Stage][]renderer.Source, error) {
 			ss = append(ss, renderer.SourceBuf(`
 				void main(void) {
 					vec2 pos = gl_FragCoord.xy;
-					pos.y = iResolution.y - pos.y - 1;
-					mainImage(gl_FragColor, pos);
+					pos.y = iResolution.y - pos.y - 1.;
+					mainImage(fragColor, pos);
 				}
 			`))
 			return ss

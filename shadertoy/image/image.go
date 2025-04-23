@@ -23,10 +23,10 @@ func init() {
 			}
 			return r, nil
 		case "RGBA Noise Small": // 64x64 4channels uint8
-			r := newImageTexture(noise(image.Rect(0, 0, 64, 64)), m.Name, genTexID())
+			r := newImageTexture(noise(image.Rect(0, 0, 64, 64)), m.Name, genTexID(), false)
 			return r, nil
 		case "RGBA Noise Medium": // 256x256 4channels uint8
-			r := newImageTexture(noise(image.Rect(0, 0, 256, 256)), m.Name, genTexID())
+			r := newImageTexture(noise(image.Rect(0, 0, 256, 256)), m.Name, genTexID(), false)
 			return r, nil
 		default:
 			return nil, fmt.Errorf("unknown builtin mapping %q", m.Value)
@@ -46,7 +46,24 @@ func init() {
 		if err != nil {
 			return nil, err
 		}
-		r := newImageTexture(img, m.Name, genTexID())
+		r := newImageTexture(img, m.Name, genTexID(), false)
+		return r, nil
+	})
+	shadertoy.RegisterResourceType("image-linear", func(m shadertoy.Mapping, genTexID shadertoy.GenTexFunc, _ renderer.RenderState) (shadertoy.Resource, error) {
+		path, err := shadertoy.ResolvePath(m.PWD, m.Value)
+		if err != nil {
+			return nil, err
+		}
+		fd, err := os.Open(path)
+		if err != nil {
+			return nil, err
+		}
+		defer fd.Close()
+		img, _, err := image.Decode(fd)
+		if err != nil {
+			return nil, err
+		}
+		r := newImageTexture(img, m.Name, genTexID(), true)
 		return r, nil
 	})
 }
@@ -59,7 +76,7 @@ type imageTexture struct {
 	rect        image.Rectangle
 }
 
-func newImageTexture(img image.Image, uniformName string, texID uint32) *imageTexture {
+func newImageTexture(img image.Image, uniformName string, texID uint32, linear bool) *imageTexture {
 	tex := &imageTexture{
 		uniformName: uniformName,
 		index:       texID,
@@ -89,8 +106,14 @@ func newImageTexture(img image.Image, uniformName string, texID uint32) *imageTe
 	)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+
+	if(linear) {
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+	} else {
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+	}
 	gl.BindTexture(gl.TEXTURE_2D, 0)
 	return tex
 }

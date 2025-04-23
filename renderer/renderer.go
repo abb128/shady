@@ -712,7 +712,7 @@ func ParseOpenGLVersion(s string) (OpenGLVersion, error) {
 
 func OpenGLVersionFromGLSLVersion(s string) (OpenGLVersion, error) {
 	// Parse to int first, this verifies the format of the string.
-	glslVersion, err := strconv.Atoi(s)
+	glslVersion, err := strconv.Atoi(strings.Split(s, " ")[0])
 	if err != nil {
 		return 0, err
 	}
@@ -727,6 +727,8 @@ func OpenGLVersionFromGLSLVersion(s string) (OpenGLVersion, error) {
 	case "140":
 		return OpenGL31, nil
 	case "150":
+		return OpenGL32, nil
+	case "320 es":
 		return OpenGL32, nil
 	}
 
